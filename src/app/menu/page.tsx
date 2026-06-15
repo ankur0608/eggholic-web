@@ -1,22 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Search, SearchX } from "lucide-react";
-import { originalMenuData, MenuItem } from "@/data/menu";
+import { originalMenuData, fetchDynamicMenu, MenuCategory, MenuItem } from "@/data/menu";
 
 export default function MenuPage() {
   const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [menuData, setMenuData] = useState<MenuCategory[]>(originalMenuData);
+
+  useEffect(() => {
+    fetchDynamicMenu().then(data => setMenuData(data));
+  }, []);
 
   const categories = [
     { id: "all", label: "All Items" },
-    ...originalMenuData.map(cat => ({ id: cat.id, label: cat.label }))
+    ...menuData.map(cat => ({ id: cat.id, label: cat.label }))
   ];
 
   const matches: (MenuItem & { catBg: string; catId: string })[] = [];
-  originalMenuData.forEach(cat => {
+  menuData.forEach(cat => {
     if (activeCategory === "all" || cat.id === activeCategory) {
       cat.items.forEach(item => {
         if (!searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.desc.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -77,11 +83,11 @@ export default function MenuPage() {
           ) : (
             matches.map((item, index) => {
               const imgs = ['IMG_0325.PNG', 'IMG_0326.PNG', 'IMG_0327.PNG', 'IMG_0365.PNG', 'IMG_0367.PNG'];
-              const imgUrl = imgs[index % imgs.length];
+              const imgUrl = item.imageUrl || `/${imgs[index % imgs.length]}`;
               return (
                 <div key={item.name} className="standalone-menu-card group relative bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-amber-100/60 flex flex-col cursor-pointer">
                   <div className="h-40 relative overflow-hidden bg-amber-50 flex flex-col items-center justify-center">
-                      <img src={`/${imgUrl}`} alt={item.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      <Image src={imgUrl} alt={item.name} fill sizes="(max-width: 640px) 100vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-110" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-90 pointer-events-none"></div>
                   </div>
                   <div className="p-5 flex flex-col justify-between flex-1 relative bg-white">

@@ -3,6 +3,7 @@ export interface MenuItem {
     price: number;
     desc: string;
     eggs?: number;
+    imageUrl?: string;
 }
 
 export interface MenuCategory {
@@ -10,6 +11,59 @@ export interface MenuCategory {
     label: string;
     bg: string;
     items: MenuItem[];
+}
+
+let cachedMenuData: MenuCategory[] | null = null;
+let fetchPromise: Promise<MenuCategory[]> | null = null;
+
+export async function fetchDynamicMenu(): Promise<MenuCategory[]> {
+    if (cachedMenuData) return cachedMenuData;
+    if (fetchPromise) return fetchPromise;
+
+    fetchPromise = (async () => {
+        try {
+            const res = await fetch('/api/proxy/items');
+            if (!res.ok) throw new Error("Failed to fetch menu items");
+            const data = await res.json();
+            
+            if (!data.success || !data.items) {
+                cachedMenuData = originalMenuData;
+                return originalMenuData;
+            }
+
+            const groups: Record<string, MenuItem[]> = {};
+            data.items.forEach((item: any) => {
+                const cat = item.category || 'Other';
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push({
+                    name: item.name,
+                    price: item.price,
+                    desc: item.description || '',
+                    imageUrl: item.imageUrl
+                });
+            });
+
+            const colors = [
+                'F59E0B/1C1C1E', '1C1C1E/F59E0B', 'FFFBEB/D97706',
+                'FEF3C7/D97706', 'D97706/FFFBEB', '1C1C1E/FCD34D'
+            ];
+            
+            cachedMenuData = Object.entries(groups).map(([label, items], index) => ({
+                id: label.toLowerCase().replace(/\s+/g, '-'),
+                label,
+                bg: colors[index % colors.length],
+                items
+            }));
+            return cachedMenuData;
+        } catch (error) {
+            console.error("Error fetching menu:", error);
+            cachedMenuData = originalMenuData;
+            return originalMenuData;
+        } finally {
+            fetchPromise = null;
+        }
+    })();
+    return fetchPromise;
 }
 
 export const originalMenuData: MenuCategory[] = [

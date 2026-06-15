@@ -2,18 +2,26 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Clock, Timer, Utensils, ShoppingBag, ChevronLeft, ChevronRight, BookOpen, ChevronDown, Phone, FileText } from "lucide-react";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
-import { originalMenuData } from "@/data/menu";
+import { originalMenuData, fetchDynamicMenu, MenuCategory } from "@/data/menu";
 import { MenuCard } from "@/components/ui/MenuCard";
 
 export default function Home() {
   useIntersectionObserver();
   const router = useRouter();
 
+  const [menuData, setMenuData] = useState<MenuCategory[]>(originalMenuData);
+  
+  useEffect(() => {
+    fetchDynamicMenu().then(data => setMenuData(data));
+  }, []);
+
   // Tabbed Slider State
-  const [activeTab, setActiveTab] = useState("starters");
+  const [activeTab, setActiveTab] = useState(menuData[0]?.id || "starters");
   const [searchQuery, setSearchQuery] = useState("");
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sliderRef = useRef<HTMLDivElement>(null);
 
   // FAQ State
@@ -29,7 +37,7 @@ export default function Home() {
     }
   };
 
-  const activeCategoryData = originalMenuData.find(cat => cat.id === activeTab);
+  const activeCategoryData = menuData.find(cat => cat.id === activeTab);
   const filteredItems = activeCategoryData?.items.filter(item => 
     !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.desc.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
@@ -85,7 +93,14 @@ export default function Home() {
             <div className="reveal flex justify-center mt-4 md:mt-0">
               <div className="relative w-full max-w-sm">
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl aspect-square bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
-                  <img src="/hero section.png" alt="Eggoholic Hero Image" className="w-full h-full object-cover" />
+                  <Image 
+                    src="/hero section.png" 
+                    alt="Eggoholic Hero Image" 
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 100vw, 384px"
+                    className="object-cover" 
+                  />
                 </div>
               </div>
             </div>
@@ -101,8 +116,7 @@ export default function Home() {
             <p className="mt-1.5 text-gray-500 text-sm">Must-try dishes loved by our regulars</p>
           </div>
           <div className="flex md:grid md:grid-cols-3 gap-6 overflow-x-auto pb-4 md:pb-0 no-scrollbar snap-x px-2">
-            {/* Hardcoded favorites mapping could be placed here. For simplicity, we just reuse MenuCard with specific items */}
-            {originalMenuData[0].items.slice(0, 5).map((item, i) => (
+            {menuData[0]?.items.slice(0, 5).map((item, i) => (
                <MenuCard key={item.name} item={item} imageUrl={['IMG_0325.PNG', 'IMG_0326.PNG', 'IMG_0327.PNG', 'IMG_0365.PNG', 'IMG_0367.PNG'][i]} />
             ))}
           </div>
@@ -129,22 +143,17 @@ export default function Home() {
                 placeholder="Search bhurji, gotala, makhani, sizzler..." 
               />
             </div>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {originalMenuData.map(cat => {
-                const matchCount = cat.items.filter(item => 
-                  !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.desc.toLowerCase().includes(searchQuery.toLowerCase())
-                ).length;
-                return (
-                  <button 
-                    key={cat.id} 
-                    className={`menu-tab ${activeTab === cat.id ? 'active' : ''}`} 
-                    onClick={() => setActiveTab(cat.id)}
-                  >
-                    {cat.label}
-                    <span className="tab-count">{matchCount}</span>
-                  </button>
-                )
-              })}
+            {/* Tabs */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 pt-1 reveal mt-4 relative z-10 px-4 md:px-0" style={{ transitionDelay: "100ms" }}>
+              {menuData.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveTab(cat.id)}
+                  className={`tab-btn shrink-0 ${activeTab === cat.id ? "bg-primary text-secondary px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition-all duration-300" : "bg-white text-gray-500 hover:bg-amber-100/50 hover:text-amber-700 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 shadow-sm border border-amber-100/50"}`}
+                >
+                  {cat.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -155,16 +164,22 @@ export default function Home() {
                <ChevronLeft className="h-4 w-4" />
              </button>
              <div className="menu-slider-track overflow-x-auto no-scrollbar" ref={sliderRef}>
-               {filteredItems.length === 0 ? (
-                 <div className="text-center w-full py-10 text-gray-400">
-                    <p className="text-sm font-medium">No dishes match search in "{activeCategoryData?.label}"</p>
-                 </div>
-               ) : (
-                 filteredItems.map((item, idx) => {
-                   const imgs = ['IMG_0325.PNG', 'IMG_0326.PNG', 'IMG_0327.PNG', 'IMG_0365.PNG', 'IMG_0367.PNG'];
-                   return <MenuCard key={item.name} item={item} imageUrl={imgs[idx % imgs.length]} />
-                 })
-               )}
+               <div 
+                ref={scrollContainerRef}
+                className="flex gap-6 overflow-x-auto no-scrollbar py-6 scroll-smooth px-4 md:px-0 snap-x"
+              >
+                {menuData.map((cat) => (
+                  <div key={cat.id} className={activeTab === cat.id ? "flex gap-6 contents-wrapper" : "hidden"}>
+                    {cat.items.filter(item => 
+                      !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.desc.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).map((item, index) => {
+                      const imgs = ['IMG_0325.PNG', 'IMG_0326.PNG', 'IMG_0327.PNG', 'IMG_0365.PNG', 'IMG_0367.PNG'];
+                      const imgUrl = imgs[index % imgs.length];
+                      return <MenuCard key={item.name} item={item} imageUrl={imgUrl} />
+                    })}
+                  </div>
+                ))}
+              </div>
              </div>
              <button className="slider-arrow hidden md:flex" style={{ right: "-18px" }} onClick={() => handleSlide(1)}>
                <ChevronRight className="h-4 w-4" />
@@ -202,8 +217,12 @@ export default function Home() {
               </button>
             </div>
             <div className="reveal grid grid-cols-2 gap-4">
-              <img src="/signature1.png" alt="Signature 1" className="w-full h-44 object-cover rounded-2xl shadow-sm" />
-              <img src="/signature2.png" alt="Signature 2" className="w-full h-44 object-cover rounded-2xl shadow-sm mt-6" />
+              <div className="relative w-full h-44 rounded-2xl overflow-hidden shadow-sm">
+                <Image src="/signature1.png" alt="Signature 1" fill sizes="50vw" className="object-cover" />
+              </div>
+              <div className="relative w-full h-44 rounded-2xl overflow-hidden shadow-sm mt-6">
+                <Image src="/signature2.png" alt="Signature 2" fill sizes="50vw" className="object-cover" />
+              </div>
             </div>
           </div>
         </div>
