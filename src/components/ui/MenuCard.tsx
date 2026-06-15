@@ -2,6 +2,7 @@
 
 import { PhoneCall } from "lucide-react";
 import { MenuItem } from "@/data/menu";
+import Image from "next/image";
 
 interface MenuCardProps {
   item: MenuItem;
@@ -11,12 +12,13 @@ interface MenuCardProps {
 export function MenuCard({ item, imageUrl }: MenuCardProps) {
   return (
     <div className="menu-card-new group flex-shrink-0 w-[210px] md:w-[255px] bg-white rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-amber-100/40 overflow-hidden flex flex-col cursor-pointer">
-      <div className="relative overflow-hidden" style={{ height: "150px" }}>
-        <img
-          src={`/${imageUrl}`}
+      <div className="relative overflow-hidden bg-amber-50" style={{ height: "150px" }}>
+        <Image
+          src={item.imageUrl || `/${imageUrl}`}
           alt={item.name}
-          loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          fill
+          sizes="(max-width: 768px) 210px, 255px"
+          className="object-cover transition-transform duration-700 group-hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-90"></div>
         <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">

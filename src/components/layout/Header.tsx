@@ -28,12 +28,12 @@ export function Header() {
             {/* Logo */}
             <Link
               href="/"
-              className="relative flex items-center gap-2 group bg-white/50 backdrop-blur-sm p-1 rounded-2xl shadow-sm border border-amber-100"
+              className="relative flex items-center gap-2 group"
             >
               <img
                 src="/logo.png"
                 alt="Eggoholic Logo"
-                className="h-14 md:h-16 w-auto drop-shadow-lg hover:scale-105 transition-transform duration-300 relative z-10 object-contain"
+                className="h-16 md:h-20 w-auto drop-shadow-md hover:scale-105 transition-transform duration-300 relative z-10 object-contain"
               />
             </Link>
 
